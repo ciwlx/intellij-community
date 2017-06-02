@@ -20,6 +20,9 @@ import com.intellij.debugger.DebuggerContext;
 import com.intellij.debugger.engine.DebuggerManagerThreadImpl;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.EvaluationContext;
+import com.intellij.debugger.engine.evaluation.EvaluationContextImpl;
+import com.intellij.debugger.engine.evaluation.TextWithImportsImpl;
+import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.debugger.settings.ViewsGeneralSettings;
 import com.intellij.debugger.ui.impl.watch.ArrayElementDescriptorImpl;
 import com.intellij.debugger.ui.impl.watch.NodeManagerImpl;
@@ -27,17 +30,17 @@ import com.intellij.debugger.ui.tree.DebuggerTreeNode;
 import com.intellij.debugger.ui.tree.NodeDescriptor;
 import com.intellij.debugger.ui.tree.NodeDescriptorFactory;
 import com.intellij.debugger.ui.tree.ValueDescriptor;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.roots.LanguageLevelProjectExtension;
 import com.intellij.openapi.util.DefaultJDOMExternalizer;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.WriteExternalException;
 import com.intellij.pom.java.LanguageLevel;
-import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiElementFactory;
-import com.intellij.psi.PsiExpression;
+import com.intellij.psi.*;
 import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.util.IncorrectOperationException;
+import com.intellij.xdebugger.XExpression;
 import com.sun.jdi.ArrayReference;
 import com.sun.jdi.ArrayType;
 import com.sun.jdi.Type;
@@ -96,7 +99,8 @@ public class ArrayRenderer extends NodeRendererImpl{
     }
 
     ArrayReference array = (ArrayReference)value;
-    if (array.length() > 0) {
+    int arrayLength = array.length();
+    if (arrayLength > 0) {
       if (ENTRIES_LIMIT > END_INDEX - START_INDEX + 1) {
         ENTRIES_LIMIT = END_INDEX - START_INDEX;
       }
@@ -107,8 +111,8 @@ public class ArrayRenderer extends NodeRendererImpl{
 
       int added = 0;
       boolean hiddenNulls = false;
-      if (array.length() - 1 >= START_INDEX) {
-        int end = array.length() - 1 < END_INDEX ? array.length() - 1 : END_INDEX;
+      if (arrayLength - 1 >= START_INDEX) {
+        int end = arrayLength - 1 < END_INDEX ? arrayLength - 1 : END_INDEX;
         for (int idx = START_INDEX; idx <= end; idx++) {
           if (ViewsGeneralSettings.getInstance().HIDE_NULL_ARRAY_ELEMENTS && elementIsNull(array, idx)) {
             hiddenNulls = true;
@@ -129,7 +133,7 @@ public class ArrayRenderer extends NodeRendererImpl{
       builder.addChildren(Collections.emptyList(), true);
 
       if (added == 0) {
-        if (START_INDEX == 0 && array.length() - 1 <= END_INDEX) {
+        if (START_INDEX == 0 && arrayLength - 1 <= END_INDEX) {
           builder.setMessage(DebuggerBundle.message("message.node.all.elements.null"), null, SimpleTextAttributes.REGULAR_ATTRIBUTES, null);
         }
         else {
@@ -141,8 +145,8 @@ public class ArrayRenderer extends NodeRendererImpl{
         if (hiddenNulls) {
           builder.setMessage(DebuggerBundle.message("message.node.elements.null.hidden"), null, SimpleTextAttributes.REGULAR_ATTRIBUTES, null);
         }
-        if (!myForced && END_INDEX < array.length() - 1) {
-          builder.setRemaining(array.length() - 1 - END_INDEX);
+        if (!myForced && END_INDEX < arrayLength - 1) {
+          builder.setRemaining(arrayLength - 1 - END_INDEX);
         }
       }
     }
@@ -188,5 +192,81 @@ public class ArrayRenderer extends NodeRendererImpl{
 
   public boolean isApplicable(Type type) {
     return type instanceof ArrayType;
+  }
+
+  public static class Filtered extends ArrayRenderer {
+    private final XExpression myExpression;
+
+    public Filtered(XExpression expression) {
+      myExpression = expression;
+    }
+
+    public XExpression getExpression() {
+      return myExpression;
+    }
+
+    @Override
+    public void buildChildren(Value value, ChildrenBuilder builder, EvaluationContext evaluationContext) {
+      DebuggerManagerThreadImpl.assertIsManagerThread();
+      NodeManagerImpl nodeManager = (NodeManagerImpl)builder.getNodeManager();
+      NodeDescriptorFactory descriptorFactory = builder.getDescriptorManager();
+
+      builder.initChildrenArrayRenderer(this);
+
+      if (ENTRIES_LIMIT > END_INDEX - START_INDEX + 1) {
+        ENTRIES_LIMIT = END_INDEX - START_INDEX;
+      }
+
+      if (ENTRIES_LIMIT <= 0) {
+        ENTRIES_LIMIT = 1;
+      }
+
+      builder.setMessage(DebuggerBundle.message("message.node.filtered", myExpression.getExpression()),
+                         AllIcons.General.Filter,
+                         SimpleTextAttributes.REGULAR_ATTRIBUTES,
+                         null);
+
+      ArrayReference array = (ArrayReference)value;
+      int arrayLength = array.length();
+      if (arrayLength > 0) {
+        CachedEvaluator cachedEvaluator = new CachedEvaluator() {
+          @Override
+          protected String getClassName() {
+            return ((ArrayType)array.type()).componentTypeName();
+          }
+        };
+        cachedEvaluator.setReferenceExpression(TextWithImportsImpl.fromXExpression(myExpression));
+
+        int added = 0;
+        if (arrayLength - 1 >= START_INDEX) {
+          for (int idx = START_INDEX; idx < arrayLength; idx++) {
+            try {
+              if (DebuggerUtilsEx.evaluateBoolean(cachedEvaluator.getEvaluator(evaluationContext.getProject()),
+                                                  (EvaluationContextImpl)evaluationContext.createEvaluationContext(array.getValue(idx)))) {
+
+                DebuggerTreeNode arrayItemNode =
+                  nodeManager
+                    .createNode(descriptorFactory.getArrayItemDescriptor(builder.getParentDescriptor(), array, idx), evaluationContext);
+
+                builder.addChildren(Collections.singletonList(arrayItemNode), false);
+                added++;
+                //if (added > ENTRIES_LIMIT) {
+                //  break;
+                //}
+              }
+            }
+            catch (EvaluateException e) {
+              builder.addChildren(Collections.singletonList(nodeManager.createMessageNode(e.getMessage())), false);
+            }
+          }
+        }
+
+        builder.addChildren(Collections.emptyList(), true);
+
+        //if (added != 0 && END_INDEX < arrayLength - 1) {
+        //  builder.setRemaining(arrayLength - 1 - END_INDEX);
+        //}
+      }
+    }
   }
 }

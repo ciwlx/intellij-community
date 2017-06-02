@@ -483,6 +483,16 @@ public class JavaCoverageEngine extends CoverageEngine {
   @Nullable
   public String getTestMethodName(@NotNull final PsiElement element,
                                   @NotNull final AbstractTestProxy testProxy) {
+    if (element instanceof PsiMethod) {
+      PsiMethod method = (PsiMethod)element;
+      PsiClass aClass = method.getContainingClass();
+      if (aClass != null) {
+        String qualifiedName = aClass.getQualifiedName();
+        if (qualifiedName != null) {
+          return qualifiedName + "." + method.getName();
+        }
+      }
+    }
     return testProxy.toString();
   }
 
@@ -501,7 +511,7 @@ public class JavaCoverageEngine extends CoverageEngine {
       } else {
         String className = testName;
         while (lastIdx > 0) {
-          className = className.substring(0, lastIdx - 1);
+          className = className.substring(0, lastIdx);
           psiClass = facade.findClass(StringUtil.getPackageName(className, '_').replaceAll("\\_", "\\."), projectScope);
           lastIdx = className.lastIndexOf("_");
           if (psiClass != null) {

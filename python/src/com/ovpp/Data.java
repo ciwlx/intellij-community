@@ -13,16 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.intellij.compiler.chainsSearch.completion.lookup.sub;
-
-import com.intellij.psi.PsiJavaFile;
+package com.ovpp;
 
 /**
- * @author Dmitry Batkovich
+ * Created by toz57 on 2017. 5. 27..
+ * Temporary class for test visualize.
  */
-public interface SubLookupElement {
+public class Data {
+  String var_name;
+  String type_name;
+  String value_str;
+  String reference = "";
+  Object object;
 
-  void doImport(final PsiJavaFile javaFile);
+  Data(String name, String type, Object o) {
+    var_name = name;
+    type_name = type;
+    value_str = o.toString();
+    object = o;
+  }
 
-  String getInsertString();
+  Data(String name, String type, Object o, String ref) {
+    this(name, type, o);
+    reference = ref;
+  }
+
+  public String toString() {
+    return var_name + "\t" + type_name + "\t" + value_str + "\t" + reference;
+  }
 }

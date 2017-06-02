@@ -128,7 +128,7 @@ fun QualifiedName.getElementAndResolvableName(context: QNameResolveContext): Nam
   if (element == null && this.firstComponent != null && context.allowInaccurateResult) {
     // If name starts with file which is not in root nor in folders -- use index.
     val nameToFind = this.firstComponent!!
-    val pyFile = PyModuleNameIndex.find(nameToFind, context.module.project, false).firstOrNull() ?: return element
+    val pyFile = PyModuleNameIndex.find(nameToFind, context.module.project, false).firstOrNull() ?: return null
 
     val folder =
     if (pyFile.name == PyNames.INIT_DOT_PY) { // We are in folder

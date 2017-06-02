@@ -2,6 +2,9 @@ package com.jetbrains.python.debugger;
 
 import com.google.common.base.Strings;
 import com.intellij.icons.AllIcons;
+import com.intellij.notification.*;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.frame.*;
@@ -226,6 +229,7 @@ public class PyDebugValue extends XNamedValue {
 
   @Override
   public void computeChildren(@NotNull final XCompositeNode node) {
+
     if (node.isObsolete()) return;
     ApplicationManager.getApplication().executeOnPooledThread(() -> {
       if (myFrameAccessor == null) return;

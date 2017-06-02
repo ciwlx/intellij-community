@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.intellij.openapi.vcs.changes.patch;
 
 import com.intellij.CommonBundle;
@@ -55,7 +54,7 @@ import java.util.List;
 import java.util.Set;
 
 public class CreatePatchCommitExecutor extends LocalCommitExecutor implements ProjectComponent {
-  private static final Logger LOG = Logger.getInstance("#com.intellij.openapi.vcs.changes.patch.CreatePatchCommitExecutor");
+  private static final Logger LOG = Logger.getInstance(CreatePatchCommitExecutor.class);
   private static final String VCS_PATCH_PATH_KEY = "vcs.patch.path";
 
   private final Project myProject;
@@ -157,7 +156,9 @@ public class CreatePatchCommitExecutor extends LocalCommitExecutor implements Pr
         WaitForProgressToShow.runOrInvokeAndWaitAboveProgress(
           () -> result[0] = Messages.showYesNoDialog(myProject, "File " + file.getName() + " (" + file.getParent() + ")" +
                                                                 " already exists.\nDo you want to overwrite it?",
-                                                     CommonBundle.getWarningTitle(), Messages.getWarningIcon()));
+                                                     CommonBundle.getWarningTitle(),
+                                                     "Overwrite", "Cancel",
+                                                     Messages.getWarningIcon()));
         if (Messages.NO == result[0]) return;
       }
       if (file.getParentFile() == null) {
@@ -202,18 +203,9 @@ public class CreatePatchCommitExecutor extends LocalCommitExecutor implements Pr
     }
 
     @Override
-    public void executionCanceled() {
-    }
-
-    @Override
     @Nullable
     public ValidationInfo validateFields() {
       return myPanel.validateFields();
-    }
-
-    @Override
-    public String getHelpId() {
-      return null;
     }
   }
 

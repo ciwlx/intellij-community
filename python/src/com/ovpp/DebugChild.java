@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2010 JetBrains s.r.o.
+ * Copyright 2000-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.intellij.facet.frameworks.actions;
+package com.ovpp;
 
-import com.intellij.openapi.util.Pair;
-import org.jetbrains.annotations.NotNull;
+/**
+ * Created by Sehs on 2017-06-01.
+ */
+public class DebugChild {
+  int index;
+  String fieldName;
 
-public class GetAllVersionsAction extends AbstractAction {
-  private GetAllVersionsAction(@NotNull String id) {
-    super(Pair.create("id", id));
-  }
-
-  public static GetAllVersionsAction create(@NotNull String id) {
-     return new GetAllVersionsAction(id);
-   }
-
-  @NotNull
-  @Override
-  public String getActionName() {
-    return "ListVersions.action";
+  public DebugChild(int i, String name) {
+    this.index = i;
+    this.fieldName = name;
   }
 }

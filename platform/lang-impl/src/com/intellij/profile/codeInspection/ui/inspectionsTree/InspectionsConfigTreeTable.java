@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2016 JetBrains s.r.o.
+ * Copyright 2000-2017 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import com.intellij.profile.codeInspection.ui.SingleInspectionProfilePanel;
 import com.intellij.profile.codeInspection.ui.table.ScopesAndSeveritiesTable;
 import com.intellij.profile.codeInspection.ui.table.ThreeStateCheckBoxRenderer;
 import com.intellij.ui.DoubleClickListener;
+import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.treeStructure.treetable.TreeTable;
 import com.intellij.ui.treeStructure.treetable.TreeTableModel;
 import com.intellij.ui.treeStructure.treetable.TreeTableTree;
@@ -70,9 +71,9 @@ import java.util.stream.Stream;
 public class InspectionsConfigTreeTable extends TreeTable {
   private final static Logger LOG = Logger.getInstance(InspectionsConfigTreeTable.class);
 
-  private final static int TREE_COLUMN = 0;
-  private final static int SEVERITIES_COLUMN = 1;
-  private final static int IS_ENABLED_COLUMN = 2;
+  private final static int IS_ENABLED_COLUMN = 0;
+  private final static int TREE_COLUMN = 1;
+  private final static int SEVERITIES_COLUMN = 2;
 
   public static int getAdditionalPadding() {
     return SystemInfo.isMac ? 10 : 0;
@@ -92,21 +93,21 @@ public class InspectionsConfigTreeTable extends TreeTable {
       public Component getTableCellRendererComponent(JTable table, Object value, boolean selected, boolean focus, int row, int column) {
         Component component = super.getTableCellRendererComponent(table, value, false, focus, row, column);
         Color bg = selected ? table.getSelectionBackground() : table.getBackground();
+        ((JLabel) component).setBorder(IdeBorderFactory.createEmptyBorder(0, 0, 0, getAdditionalPadding()));
         component.setBackground(bg);
         ((JLabel) component).setText("");
         return component;
       }
 
-      @Nullable
       @Override
       protected Icon getIcon(@NotNull Icon value, JTable table, int row) {
         return value;
       }
     });
-    severitiesColumn.setMaxWidth(JBUI.scale(20));
+    severitiesColumn.setMaxWidth(JBUI.scale(20 + getAdditionalPadding()));
 
     TableColumn isEnabledColumn = getColumnModel().getColumn(IS_ENABLED_COLUMN);
-    isEnabledColumn.setMaxWidth(JBUI.scale(20 + getAdditionalPadding()));
+    isEnabledColumn.setMaxWidth(JBUI.scale(20));
     ThreeStateCheckBoxRenderer boxRenderer = new ThreeStateCheckBoxRenderer();
     boxRenderer.setOpaque(true);
     isEnabledColumn.setCellRenderer(boxRenderer);
@@ -200,6 +201,7 @@ public class InspectionsConfigTreeTable extends TreeTable {
     });
 
     getTableHeader().setReorderingAllowed(false);
+    getTableHeader().setResizingAllowed(false);
     registerKeyboardAction(new ActionListener() {
                              public void actionPerformed(ActionEvent e) {
                                model.swapInspectionEnableState();
@@ -244,12 +246,7 @@ public class InspectionsConfigTreeTable extends TreeTable {
                                     @NotNull InspectionProfileImpl profile,
                                     @NotNull String toolId,
                                     @NotNull Project project) {
-    if (newState) {
-      profile.enableTool(toolId, project);
-    }
-    else {
-      profile.disableTool(toolId, project);
-    }
+    profile.setToolEnabled(toolId, newState);
     for (ScopeToolState scopeToolState : profile.getTools(toolId, project).getTools()) {
       scopeToolState.setEnabled(newState);
     }
@@ -428,10 +425,6 @@ public class InspectionsConfigTreeTable extends TreeTable {
     private HighlightSeverity myPrimarySeverity;
     private final Map<String, HighlightSeverity> myOccurrences = new HashMap<>();
 
-    public void setSeverityToMixed() {
-      myPrimarySeverity = ScopesAndSeveritiesTable.MIXED_FAKE_SEVERITY;
-    }
-
     public SeverityAndOccurrences incOccurrences(final String toolName, final HighlightSeverity severity) {
       if (myPrimarySeverity == null) {
         myPrimarySeverity = severity;
@@ -463,7 +456,7 @@ public class InspectionsConfigTreeTable extends TreeTable {
     private String myDefaultScopeName;
 
     public Icon constructIcon(final InspectionProfileImpl inspectionProfile) {
-      final Map<String, HighlightSeverity> computedSeverities = computeSeverities(inspectionProfile);
+      final Map<String, HighlightSeverity> computedSeverities = computeSeverities();
 
       if (computedSeverities == null) {
         return null;
@@ -482,7 +475,7 @@ public class InspectionsConfigTreeTable extends TreeTable {
     }
 
     @Nullable
-    private Map<String, HighlightSeverity> computeSeverities(final InspectionProfileImpl inspectionProfile) {
+    private Map<String, HighlightSeverity> computeSeverities() {
       if (myScopeToAverageSeverityMap.isEmpty()) {
         return null;
       }

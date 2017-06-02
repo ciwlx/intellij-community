@@ -13,28 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.intellij.compiler.chainsSearch.completion.lookup.sub;
+package com.ovpp;
 
-import com.intellij.psi.PsiJavaFile;
-import com.intellij.psi.PsiVariable;
+import com.intellij.util.Vector;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * @author Dmitry Batkovich <dmitry.batkovich@jetbrains.com>
+ * Created by Sehs on 2017-05-30.
  */
-public class VariableSubLookupElement implements SubLookupElement {
 
-  private final String myVarName;
+public class DebugType {
+  String typename;
+  List<String> fields  = new ArrayList<String>();
 
-  public VariableSubLookupElement(final PsiVariable variable) {
-    myVarName = variable.getName();
+  public DebugType(String name) {
+    this.typename = name;
   }
 
-  @Override
-  public void doImport(final PsiJavaFile javaFile) {
-  }
-
-  @Override
-  public String getInsertString() {
-    return myVarName;
+  public void addFields(String newfield) {
+    for (String f : fields) {
+      if (f.equals(newfield)) {
+        return;
+      }
+    }
+    fields.add(newfield);
   }
 }

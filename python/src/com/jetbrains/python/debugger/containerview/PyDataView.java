@@ -38,6 +38,7 @@ import com.jetbrains.python.console.PydevConsoleCommunication;
 import com.jetbrains.python.debugger.PyDebugProcess;
 import com.jetbrains.python.debugger.PyDebugValue;
 import com.jetbrains.python.debugger.PyFrameAccessor;
+import com.ovpp.DebugManager;
 import icons.PythonIcons;
 import org.apache.xmlrpc.XmlRpcException;
 import org.jetbrains.annotations.NotNull;
@@ -76,6 +77,9 @@ public class PyDataView implements DumbAware {
       dataViewerPanel.apply(value);
     });
     window.show(null);
+
+    DebugManager m = new DebugManager(value.getFrameAccessor());
+    m.buildSnapshot();
   }
 
   public void closeTabs(Predicate<PyFrameAccessor> ifClose) {
@@ -131,7 +135,7 @@ public class PyDataView implements DumbAware {
   }
 
   @Nullable
-  private PyFrameAccessor getFrameAccessor(@NotNull ProcessHandler handler) {
+  public PyFrameAccessor getFrameAccessor(@NotNull ProcessHandler handler) {
     for (PyDebugProcess process : XDebuggerManager.getInstance(myProject).getDebugProcesses(PyDebugProcess.class)) {
       if (Comparing.equal(handler, process.getProcessHandler())) {
         return process;
