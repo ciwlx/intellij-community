@@ -31,123 +31,34 @@ import java.util.List;
  * Created by Sehs on 2017-05-23.
  */
 public class DebugManager {
-  XValueChildrenList objects;
-  ArrayList<ArrayList<DebugChild>> childrenList;
-  DebugTypeManager myTypeManager;
   PyFrameAccessor myFrameAccessor;
-  int namedRange;
+  ArrayList<DebugSnapshot> snapshots;
+  int currentIndex;
 
   public DebugManager (PyFrameAccessor frameAccessor) {
     myFrameAccessor = frameAccessor;
+    snapshots = new ArrayList<DebugSnapshot>();
+    currentIndex = 0;
+  }
+
+  public DebugSnapshot currentSnapshot() {
+    return snapshots.get(currentIndex);
   }
 
   public void buildSnapshot() {
-    objects = new XValueChildrenList();
-    myTypeManager = new DebugTypeManager();
-    childrenList = new ArrayList<ArrayList<DebugChild>>();
-    namedRange = 0;
+    DebugSnapshot shot = new DebugSnapshot(myFrameAccessor);
+    shot.build();
+    snapshots.add(shot);
+    currentIndex = snapshots.size() - 1;
+  }
 
-    ApplicationManager.getApplication().executeOnPooledThread(() -> {
-      try {
-        XValueChildrenList values = myFrameAccessor.loadFrame();
-        for (int i = 0; i < values.size(); i++) {
-          XValue value = values.getValue(i);
-
-          if (value instanceof PyDebugValue) {
-            PyDebugValue dvalue = (PyDebugValue)value;
-            String name = dvalue.getName();
-            if (name.equals("__builtins__") ||
-                name.equals("__doc__") ||
-                name.equals("__file__") ||
-                name.equals("__loader__") ||
-                name.equals("__name__") ||
-                name.equals("__package__") ||
-                name.equals("__spec__"))
-              continue;
-            boolean visited = false;
-            for (int j = 0; j < objects.size(); j++) {
-              if (((PyDebugValue)objects.getValue(j)).getValue().equals(dvalue.getValue())) {
-                visited = true;
-              }
-            }
-            if (visited == false) {
-              objects.add(dvalue);
-              namedRange++;
-            }
-          }
-        }
-      }
-      catch (PyDebuggerException e) {
-        //
-      }
-
-      int i = 0;
-      while (i < objects.size()) {
-        PyDebugValue pvalue = (PyDebugValue)objects.getValue(i);
-        String typename = pvalue.getType();
-        myTypeManager.addType(typename);
-        childrenList.add(new ArrayList<DebugChild>());
-
-        try {
-          XValueChildrenList childvalues = myFrameAccessor.loadVariable(pvalue);
-
-          for (int j = 0; j < childvalues.size(); j++) {
-            XValue value= childvalues.getValue(j);
-
-            if (value instanceof PyDebugValue) {
-              PyDebugValue dvalue = (PyDebugValue)value;
-
-              myTypeManager.addField(typename, dvalue.getName());
-
-              boolean visited = false;
-              int childIndex = 0;
-              for (int k = 0; k < objects.size(); k++) {
-                if (((PyDebugValue)objects.getValue(k)).getValue().equals(dvalue.getValue())) {
-                  visited = true;
-                  childIndex = k;
-                }
-              }
-              if (visited == false) {
-                childIndex = objects.size();
-                objects.add(dvalue);
-              }
-
-              ((ArrayList<DebugChild>)childrenList.get(i)).add(new DebugChild(childIndex, dvalue.getName()));
-            }
-          }
-        }
-        catch (PyDebuggerException e) {
-          //
-        }
-        i++;
-      }
-    });
-
-    /*
-    NotificationGroup ng = new NotificationGroup("VariableTesting", NotificationDisplayType.NONE, true);
-    for (int i = 0; i < objects.size(); i++) {
-      PyDebugValue v = (PyDebugValue)objects.getValue(i);
-
-      Notification n = ng.createNotification(v.getId() + " " + v.getValue(), NotificationType.INFORMATION);
-      Notifications.Bus.notify(n);
-
-  */
-
-    /*
-    for (int i = 0; i < objects.size(); i++) {
-      PyDebugValue v = (PyDebugValue)objects.getValue(i);
-      JBLabel name = new JBLabel();
-      name.setText(v.getName());
-
+  public void removeSnapshot() {
+    if (!snapshots.isEmpty()) {
+      snapshots.remove(currentIndex);
+      currentIndex = snapshots.size() - 1 ;
     }
-    */
-
+    if (snapshots.isEmpty()) {
+      currentIndex = 0;
+    }
   }
-
-  public ArrayList getChildren(int objIndex) {
-    return (ArrayList<DebugChild>)childrenList.get(objIndex);
-  }
-
-  public DebugType getType(PyDebugValue dvalue) {return null;}
-
 }

@@ -27,6 +27,7 @@ import com.intellij.xdebugger.frame.XValueChildrenList;
 import com.jetbrains.python.debugger.PyDebugValue;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -41,46 +42,75 @@ public class DebugObjectViewer extends DialogWrapper implements ActionListener {
   private JBLabel TYPE;
   private JBLabel objName;
   private JBLabel objType;
-  private JBScrollPane ObjectView;
-  private JButton nextObjectButton;
   private JBLabel VALUE;
   private JBLabel objValue;
-  private JButton childValue1;
-  private JButton childValue2;
+  private JButton build;
+  private JButton next;
+  private JButton prev;
+  private JBLabel SNAPSHOTNUM;
+  private JBLabel snapshotNum;
+  private JButton remove;
+  private DebugCanvas debugCanvas;
   private JComponent myAnchor;
-  private DebugManager dmanager;
 
-  ArrayList<JButton> childButtons;
-
-  int objIndex;
+  public DebugManager dmanager;
 
   public DebugObjectViewer (DebugManager dmanager) {
     super(true);
-    this.objIndex = 0;
     this.dmanager = dmanager;
-    this.childButtons = new ArrayList<JButton>();
+    this.debugCanvas = new DebugCanvas(this);
+    this.debugCanvas.setBackground(Color.WHITE);
 
     this.setTitle("Object Viewer");
+    myPanel.add(debugCanvas, new GridConstraints(3, 1, 1, 2,
+                                             GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH,
+                                             GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_WANT_GROW,
+                                             new JBDimension(debugCanvas.width, debugCanvas.height), new JBDimension(-1, -1), new JBDimension(-1, -1)));
 
     this.init();
-    showObject();
 
-    nextObjectButton.setActionCommand("next");
-    nextObjectButton.addActionListener(this);
+    prev.addActionListener(this);
+    next.addActionListener(this);
+    build.addActionListener(this);
+    remove.addActionListener(this);
+    prev.setActionCommand("prev");
+    next.setActionCommand("next");
+    build.setActionCommand("build");
+    remove.setActionCommand("remove");
   }
 
   public void actionPerformed(ActionEvent e) {
     if (e.getActionCommand().equals("NoAction")) {
       return;
     }
-    else if (e.getActionCommand().equals("next")) {
-      objIndex++;
-      if (objIndex == dmanager.objects.size()) {
-        objIndex--;
+    else if (e.getActionCommand().equals("prev")) {
+      dmanager.currentIndex--;
+      if (dmanager.currentIndex < 0) {
+        dmanager.currentIndex = 0;
       }
-      showObject();
+      snapshotNum.setText(Integer.toString((dmanager.currentIndex)));
+      this.repaint();
+    }
+    else if (e.getActionCommand().equals("next")) {
+      dmanager.currentIndex++;
+      if (dmanager.currentIndex >= dmanager.snapshots.size()) {
+        dmanager.currentIndex = dmanager.snapshots.size() - 1;
+      }
+      snapshotNum.setText(Integer.toString((dmanager.currentIndex)));
+      this.repaint();
+    }
+    else if (e.getActionCommand().equals("build")) {
+      dmanager.buildSnapshot();
+      snapshotNum.setText(Integer.toString((dmanager.currentIndex)));
+      this.repaint();
+    }
+    else if (e.getActionCommand().equals("remove")) {
+      dmanager.removeSnapshot();
+      snapshotNum.setText(Integer.toString((dmanager.currentIndex)));
+      this.repaint();
     }
     else {
+      /*
       try {
         int index = Integer.parseInt(e.getActionCommand());
         this.objIndex = index;
@@ -89,12 +119,22 @@ public class DebugObjectViewer extends DialogWrapper implements ActionListener {
       catch (NumberFormatException exc) {
         //
       }
+      */
     }
   }
 
   public void showObject() {
-    PyDebugValue dvalue = (PyDebugValue)dmanager.objects.getValue(objIndex);
-    if (objIndex < dmanager.namedRange) {
+    DebugSnapshot shot = dmanager.currentSnapshot();
+    if (dmanager.snapshots.isEmpty()) {
+      return;
+    }
+    if (shot.objects.size() == 0) {
+      return;
+    }
+
+    int objIndex = shot.objIndex;
+    PyDebugValue dvalue = (PyDebugValue)shot.objects.getValue(objIndex);
+    if (objIndex < shot.namedRange) {
       setName(dvalue.getName());
     }
     else {
@@ -102,28 +142,6 @@ public class DebugObjectViewer extends DialogWrapper implements ActionListener {
     }
     setType(dvalue.getType());
     setValue(dvalue.getValue());
-
-    ArrayList<DebugChild> childrenList = dmanager.getChildren(objIndex);
-
-    for (JButton cbutton : childButtons) {
-      myPanel.remove(cbutton);
-    }
-    childButtons.clear();
-
-    int childNumber = 0;
-    for (DebugChild c : childrenList) {
-      PyDebugValue cvalue = (PyDebugValue)dmanager.objects.getValue(c.index);
-      JButton cbutton = new JButton();
-      cbutton.setText(cvalue.getType() + " " + c.fieldName + " : " + cvalue.getValue());
-      cbutton.setActionCommand(new Integer(c.index).toString());
-      cbutton.addActionListener(this);
-      myPanel.add(cbutton, new GridConstraints(childNumber, 2, 1, 1,
-                                               GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_NONE,
-                                               GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_GROW,
-                                               new JBDimension(-1, -1), new JBDimension(-1, -1), new JBDimension(-1, -1)));
-      childButtons.add(cbutton);
-      childNumber++;
-    }
 
     myPanel.revalidate();
     myPanel.repaint();
@@ -144,7 +162,6 @@ public class DebugObjectViewer extends DialogWrapper implements ActionListener {
   public void setValue(String type) {
     objValue.setText(type);
   }
-
 
   private void createUIComponents() {
   }

@@ -32,17 +32,17 @@ import com.jetbrains.python.debugger.containerview.PyDataView;
  * Created by Sehs on 2017-05-31.
  */
 public class DrawAction extends AnAction {
+  DebugManager dmanager;
 
   public DrawAction() {
     super("Draw Object");
+    dmanager = new DebugManager(null);
   }
 
   public void actionPerformed(AnActionEvent e) {
     ProcessHandler a = XDebuggerManager.getInstance(e.getProject()).getCurrentSession().getDebugProcess().getProcessHandler();
     PyFrameAccessor frameAccessor = PyDataView.getInstance(e.getProject()).getFrameAccessor(a);
-    DebugManager dmanager = new DebugManager(frameAccessor);
-    dmanager.buildSnapshot();
-
+    dmanager.myFrameAccessor = frameAccessor;
     DebugObjectViewer view = new DebugObjectViewer(dmanager);
     view.show();
   }
