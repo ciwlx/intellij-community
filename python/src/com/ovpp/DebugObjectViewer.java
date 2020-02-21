@@ -159,8 +159,14 @@ public class DebugObjectViewer extends DialogWrapper implements ActionListener {
     objType.setText(type);
   }
 
-  public void setValue(String type) {
-    objValue.setText(type);
+  public void setValue(String value) {
+    if (value.length() < 30) {
+      objValue.setText(value);
+
+    }
+    else {
+      objValue.setText(value.substring(0, 25)+"...");
+    }
   }
 
   private void createUIComponents() {

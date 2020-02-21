@@ -25,10 +25,14 @@ import java.awt.geom.Rectangle2D;
 import java.text.AttributedCharacterIterator;
 import java.util.ArrayList;
 
+
 /**
  * Created by Sehs on 2017-06-03.
  */
 public class DebugCanvas extends JPanel implements MouseMotionListener, MouseInputListener, MouseWheelListener {
+  int fontsize = 13;
+  int lineheight = 14;
+
   int width = 700;
   int height = 500;
 
@@ -126,6 +130,7 @@ public class DebugCanvas extends JPanel implements MouseMotionListener, MouseInp
 
   protected void paintComponent(Graphics g) {
     super.paintComponent(g);
+    g.setFont(new Font("Helvetica", Font.PLAIN, fontsize));
     if (viewer.dmanager.snapshots.isEmpty()) {
       return;
     }
@@ -151,7 +156,7 @@ public class DebugCanvas extends JPanel implements MouseMotionListener, MouseInp
               shot.objectRect.add(new Rectangle(0, 0, 0, 0));
             }
             else {
-              int height = 30;
+              int height = lineheight * 3;
               int c = count % col;
               int r = count / col;
 
@@ -169,7 +174,7 @@ public class DebugCanvas extends JPanel implements MouseMotionListener, MouseInp
         else {
           ArrayList<DebugChild> children = shot.getChildren(i);
           int csize = children.size();
-          int height = csize * 10 + 20;
+          int height = (csize+2) * lineheight;
           int c = count % col;
           int r = count / col;
 
@@ -213,9 +218,9 @@ public class DebugCanvas extends JPanel implements MouseMotionListener, MouseInp
             g.setColor(new Color(192, 192,192, 32));
             g.fillRoundRect(x, y, size.width, size.height, 2, 2);
             g.setColor(new Color(192, 64, 64, 255));
-            g.drawString(dvalue.getValue(), x + 5, y + 20);
+            g.drawString(dvalue.getValue(), x + 5, y + lineheight*2);
             g.setColor(new Color(0, 0, 0, 255));
-            g.drawString(dvalue.getType() + " " + dvalue.getName(), x + 5, y + 10);
+            g.drawString(dvalue.getType() + " " + dvalue.getName(), x + 5, y + lineheight);
           }
           else {
             g.setColor(new Color(0, 0, 255, 64));
@@ -223,9 +228,9 @@ public class DebugCanvas extends JPanel implements MouseMotionListener, MouseInp
             g.setColor(new Color(192, 192,192, 16));
             g.fillRoundRect(x, y, size.width, size.height, 2, 2);
             g.setColor(new Color(192, 64, 64, 64));
-            g.drawString(dvalue.getValue(), x + 5, y + 20);
+            g.drawString(dvalue.getValue(), x + 5, y + lineheight*2);
             g.setColor(new Color(0, 0, 0, 64));
-            g.drawString(dvalue.getType() + " " + dvalue.getName(), x + 5, y + 10);
+            g.drawString(dvalue.getType() + " " + dvalue.getName(), x + 5, y + lineheight);
           }
         }
       }
@@ -236,7 +241,7 @@ public class DebugCanvas extends JPanel implements MouseMotionListener, MouseInp
         }
         if (i == shot.objIndex) {
           g.setColor(new Color(0, 0, 0, 255));
-          g.drawString(dvalue.getType() + " " + name, x + 5, y + 10);
+          g.drawString(dvalue.getType() + " " + name, x + 5, y + lineheight);
           g.setColor(new Color(0, 0, 255, 255));
           g.drawRoundRect(x, y, size.width, size.height, 2, 2);
           g.setColor(new Color(192, 192,192, 32));
@@ -244,7 +249,7 @@ public class DebugCanvas extends JPanel implements MouseMotionListener, MouseInp
         }
         else {
           g.setColor(new Color(0, 0, 0, 64));
-          g.drawString(dvalue.getType() + " " + name, x + 5, y + 10);
+          g.drawString(dvalue.getType() + " " + name, x + 5, y + lineheight);
           g.setColor(new Color(0, 0, 255, 64));
           g.drawRoundRect(x, y, size.width, size.height, 2, 2);
           g.setColor(new Color(192, 192,192, 16));
@@ -266,13 +271,13 @@ public class DebugCanvas extends JPanel implements MouseMotionListener, MouseInp
               ctype.equals("str")) {
 
             if (i == shot.objIndex) {
-              g.setColor(new Color(255, 0, 0, 255));
+              g.setColor(new Color(255,0, 0, 255));
             }
             else {
-              g.setColor(new Color(255, 0, 0, 32));
+              g.setColor(new Color(255, 0, 0, 48));
             }
-            g.drawString(children.get(j).fieldName + " :", x + 5, y + 20 + 10 * j);
-            g.drawString(cvalue.getValue(), x + rectsize / 2, y + 20 + 10 * j);
+            g.drawString(children.get(j).fieldName + " :", x + 5, y + lineheight * (j+2));
+            g.drawString(cvalue.getValue(), x + rectsize / 2, y + lineheight * (j+2));
           }
 
           else {
@@ -281,19 +286,19 @@ public class DebugCanvas extends JPanel implements MouseMotionListener, MouseInp
             int cx = cloc.x - left;
             int cy = cloc.y - up;
 
-            Point start = new Point(x + rectsize / 2, y + 15 + 10 * j);
+            Point start = new Point(x + rectsize / 2, y + lineheight*(j+1) + lineheight/2 + 2);
             Point end = new Point(cx + 2, cy + 2);
 
             if (i == shot.objIndex) {
               g.setColor(new Color(255, 0, 0, 255));
             }
             else {
-              g.setColor(new Color(255, 0, 0, 32));
+              g.setColor(new Color(255, 0, 0, 48));
             }
 
-            g.drawString(children.get(j).fieldName + " :", x + 5, y + 20 + 10 * j);
+            g.drawString(children.get(j).fieldName + " :", x + 5, y + lineheight*(j+2));
             g.drawLine(start.x, start.y, end.x, end.y);
-            g.fillOval(start.x - 4, start.y - 4, 8, 8);
+            g.fillOval(start.x-4, start.y-4, 8, 8);
             Point a = new Point(end.x, end.y);
             double angle = Math.atan2(start.y - end.y, start.x - end.x);
             double cw = angle + Math.PI / 6;
